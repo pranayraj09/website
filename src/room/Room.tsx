@@ -447,7 +447,12 @@ function Shelves({
 
 const drawBadge = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
   ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, w, h)
+  ctx.beginPath()
+  ctx.arc(w / 2, h / 2, w / 2 - 8, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = C.primarySoft
+  ctx.lineWidth = 8
+  ctx.stroke()
 }
 
 function Frame({ cert, position }: { cert: Certification; position: [number, number, number] }) {
@@ -482,15 +487,10 @@ function Frame({ cert, position }: { cert: Certification; position: [number, num
         <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
       {cert.badge && (
-        <group position={[0.47, 0.37, 0.07]}>
-          <RoundedBox args={[0.26, 0.26, 0.05]} radius={0.05} castShadow>
-            <Mat color={C.white} />
-          </RoundedBox>
-          <mesh position={[0, 0, 0.027]}>
-            <planeGeometry args={[0.22, 0.22]} />
-            <meshBasicMaterial map={badge} toneMapped={false} />
-          </mesh>
-        </group>
+        <mesh position={[0.33, 0.22, 0.034]}>
+          <circleGeometry args={[0.095, 48]} />
+          <meshBasicMaterial map={badge} transparent toneMapped={false} />
+        </mesh>
       )}
     </group>
   )

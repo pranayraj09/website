@@ -233,13 +233,19 @@ export function Tour({
                 {stop.id === 'contact' && (
                   <>
                     <button type="button" className="know-more" onClick={enterBasement}>
+                      <span className="know-more__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                          <path d="M3 6h5v4h4v4h4v4h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
                       <span className="know-more__text">
                         <b>Know more</b>
                         <span>There's more to me than code. Head down to the basement.</span>
                       </span>
-                      <span className="know-more__chevron" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="22" height="22">
-                          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <span className="know-more__cta">
+                        Take the stairs
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </span>
                     </button>
