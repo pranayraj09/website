@@ -9,7 +9,7 @@ export type Stop = {
 export const stops: Stop[] = [
   { id: 'home', camera: { pos: [11, 9, 11], look: [0, 1.5, 0], shift: 0.2 } },
   { id: 'room', camera: { pos: [8.6, 7, 8.6], look: [0, 1.4, 0], shift: 0 } },
-  { id: 'about', side: 'right', camera: { pos: [4.5, 2.8, 4.7], look: [1.3, 0.35, 1.3], shift: -0.2 } },
+  { id: 'about', side: 'right', camera: { pos: [4.2, 2.2, 4.4], look: [1.3, 0.8, 1.3], shift: -0.2 } },
   { id: 'experience', side: 'left', camera: { pos: [2.5, 3.4, 1.3], look: [-2.7, 2.55, -0.8], shift: 0.2 } },
   { id: 'projects', side: 'right', camera: { pos: [0.3, 3.0, 2.4], look: [0.9, 1.95, -2.5], shift: -0.2 } },
   { id: 'skills', side: 'left', camera: { pos: [-1.0, 2.6, 1.1], look: [-1.95, 2.15, -2.97], shift: 0.2 } },

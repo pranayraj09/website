@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import * as THREE from 'three'
 import { certifications, experience, type Certification, type Job } from '../content'
+import { Android } from './Android'
 import { Basement } from './Basement'
 import { Mat } from './Mat'
 import { C } from './palette'
@@ -632,57 +633,10 @@ function Plant() {
   )
 }
 
-const tailCurve = new THREE.CatmullRomCurve3([
-  new THREE.Vector3(-0.28, 0.16, 0),
-  new THREE.Vector3(-0.46, 0.1, 0.02),
-  new THREE.Vector3(-0.56, 0.05, 0.16),
-  new THREE.Vector3(-0.46, 0.042, 0.3),
-  new THREE.Vector3(-0.2, 0.042, 0.34),
-])
-const tailTip = tailCurve.getPoint(1)
-
-function Cat() {
-  const body = useRef<THREE.Group>(null)
-  const tail = useMemo(() => new THREE.TubeGeometry(tailCurve, 32, 0.042, 10, false), [])
-  useEffect(() => () => tail.dispose(), [tail])
-  useFrame(({ clock }) => {
-    if (body.current) body.current.scale.y = 1 + Math.sin(clock.elapsedTime * 2.2) * 0.03
-  })
+function AboutBot() {
   return (
-    <Hotspot target="about" label="About me" tag={[1.3, 0.95, 1.3]}>
-      <group position={[1.3, 0, 1.3]} rotation={[0, 0.7, 0]}>
-        <group ref={body}>
-          <mesh position={[0, 0.2, 0]} rotation={[0, 0, Math.PI / 2]} scale={[1, 1, 0.85]} castShadow>
-            <capsuleGeometry args={[0.2, 0.4, 8, 16]} />
-            <Mat color={C.ink} />
-          </mesh>
-        </group>
-        <group position={[0.42, 0.28, 0.05]}>
-          <mesh castShadow>
-            <sphereGeometry args={[0.17, 24, 24]} />
-            <Mat color={C.ink} />
-          </mesh>
-          {[-0.08, 0.08].map((z) => (
-            <mesh key={z} position={[0.02, 0.15, z]} rotation={[z * 3, 0, 0]} castShadow>
-              <coneGeometry args={[0.055, 0.12, 4]} />
-              <Mat color={C.ink} />
-            </mesh>
-          ))}
-          {[-0.065, 0.065].map((z) => (
-            <mesh key={z} position={[0.15, 0.03, z]} rotation={[0, 0, Math.PI / 2]}>
-              <capsuleGeometry args={[0.012, 0.03, 4, 8]} />
-              <meshBasicMaterial color={C.warm} />
-            </mesh>
-          ))}
-        </group>
-        <mesh geometry={tail} castShadow>
-          <Mat color={C.ink} />
-        </mesh>
-        <mesh position={tailTip} castShadow>
-          <sphereGeometry args={[0.042, 12, 12]} />
-          <Mat color={C.ink} />
-        </mesh>
-      </group>
+    <Hotspot target="about" label="About me" tag={[1.3, 1.85, 1.3]}>
+      <Android position={[1.3, 0, 1.3]} rotation={0.75} />
     </Hotspot>
   )
 }
@@ -969,7 +923,7 @@ export default function Room({
             <Pinboard />
             <Cabinet />
             <Plant />
-            <Cat />
+            <AboutBot />
             <Hatch open={descending} startOpen={returning} />
           </>
         ) : (

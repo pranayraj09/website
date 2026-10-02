@@ -27,7 +27,7 @@ const B = {
   glow: '#8ef3ff',
 }
 
-function Limb({ from, to, r, color }: { from: Vec3; to: Vec3; r: number; color: string }) {
+export function Limb({ from, to, r, color }: { from: Vec3; to: Vec3; r: number; color: string }) {
   const { mid, quat, len } = useMemo(() => {
     const a = new THREE.Vector3(...from)
     const b = new THREE.Vector3(...to)
