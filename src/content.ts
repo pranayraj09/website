@@ -33,6 +33,7 @@ export type Certification = {
   name: string
   issuer: string
   year: string
+  badge?: string
 }
 
 export const profile = {
@@ -219,6 +220,13 @@ export const experience: Job[] = [
   },
 ]
 
+export const stats: { value: string; label: string }[] = [
+  { value: '12+', label: 'years building for the web' },
+  { value: '20+', label: 'ServiceNow apps on my component library' },
+  { value: '40%', label: 'faster page loads delivered' },
+  { value: '200+', label: 'code reviews to raise the bar' },
+]
+
 export const skills: { group: string; items: string[] }[] = [
   { group: 'Languages & Frameworks', items: ['JavaScript (ES6+)', 'TypeScript', 'React', 'Redux', 'Node.js', 'Express'] },
   { group: 'Web', items: ['HTML5', 'CSS3', 'SASS / LESS', 'Bootstrap', 'REST APIs', 'webpack', 'Storybook', 'Adobe AEM'] },
@@ -243,6 +251,31 @@ export const education: Education[] = [
 ]
 
 export const certifications: Certification[] = [
-  { name: 'Claude Certified Architect – Foundations', issuer: 'Anthropic', year: '2026' },
-  { name: 'Programming in HTML5 with JavaScript and CSS3', issuer: 'Microsoft Specialist', year: '2014' },
+  { name: 'Claude Certified Architect – Foundations', issuer: 'Anthropic', year: '2026', badge: '/logos/claude.svg' },
+  { name: 'Programming in HTML5 with JavaScript and CSS3', issuer: 'Microsoft Specialist', year: '2014', badge: '/logos/javascript.svg' },
+]
+
+export type BasementSpot = { id: string; title: string }
+
+export const basementSpots: BasementSpot[] = [
+  {
+    id: 'gym',
+    title: 'The gym',
+  },
+  {
+    id: 'game',
+    title: 'We got the speed',
+  },
+  {
+    id: 'us',
+    title: 'Player 1 & Player 2',
+  },
+  {
+    id: 'toys',
+    title: 'Toy corner',
+  },
+  {
+    id: 'ai',
+    title: 'The AI crew',
+  },
 ]

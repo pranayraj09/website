@@ -15,7 +15,7 @@ function measure(): Layer[] {
   })
 }
 
-export function useSmoothParallax() {
+export function useSmoothParallax(key?: unknown) {
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
     if (reduced.matches) return
@@ -56,10 +56,10 @@ export function useSmoothParallax() {
       window.removeEventListener('resize', onResize)
       window.removeEventListener('load', onResize)
     }
-  }, [])
+  }, [key])
 }
 
-export function useReveal() {
+export function useReveal(key?: unknown) {
   useEffect(() => {
     const items = document.querySelectorAll<HTMLElement>('.reveal')
     const observer = new IntersectionObserver(
@@ -75,5 +75,5 @@ export function useReveal() {
     )
     items.forEach((item) => observer.observe(item))
     return () => observer.disconnect()
-  }, [])
+  }, [key])
 }
