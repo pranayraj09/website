@@ -14,7 +14,11 @@ export type Job = {
   location: string
   start: string
   end: string
-  summary?: string
+  logo?: string
+  note?: string
+  summary: string
+  highlights: string[]
+  stack: string[]
 }
 
 export type Education = {
@@ -22,14 +26,21 @@ export type Education = {
   school: string
   location: string
   years: string
+  note?: string
+}
+
+export type Certification = {
+  name: string
+  issuer: string
+  year: string
 }
 
 export const profile = {
   name: 'Pranay Raj Kyatham',
-  title: 'Staff Web Developer',
+  title: 'Staff Software Engineer',
   location: 'San Jose, CA',
   summary:
-    'Front-end engineer with a decade of building web experiences at ServiceNow, Intel, and Apple. On my own time I ship products end to end — native iOS and Android apps, real-time Node.js backends, and tools for traders.',
+    '12+ years architecting high-performance web applications and component libraries at ServiceNow, Intel, and Apple. Lately building AI agent platforms at work and AI-powered trading tools on my own time.',
   email: 'kyatham.pranay@gmail.com',
   resume: './Pranay_Kyatham-Resume.pdf',
   links: [
@@ -39,26 +50,12 @@ export const profile = {
 }
 
 export const about = [
-  'I started out teaching myself HTML, CSS, and JavaScript, building sites for university events and startups, and grew into front-end work on large marketing and product sites. Today I am a Staff Web Developer at ServiceNow.',
-  'Outside work I enjoy owning a product across every layer: designing the API, modelling the data, and shipping the native clients that sit on top of it.',
-  'Lately I have been building Linkd, a cross-platform dating app with server-driven UI and real-time chat, and a set of trading tools that automate signal execution and make P&L across brokers easy to understand.',
+  'I am a Staff Software Engineer at ServiceNow with 12+ years of experience in React, TypeScript, Node.js, and modern JavaScript. I build scalable front-end platforms, CMS integrations, and component-driven architectures that serve millions of users, and I have cut page load times by 40% along the way.',
+  'I care about technical excellence beyond my own code: I mentor engineers, run code reviews, and set up the testing and quality standards that let teams ship with confidence.',
+  'On my own time I build AI-driven trading tools: bots that trade through broker APIs, and a trade-history view with charts and detailed P&L breakdowns for Robinhood and other brokers. I also hold the Anthropic Claude Certified Architect certification, covering agentic systems, prompt engineering, MCP, and enterprise AI applications.',
 ]
 
 export const featuredProjects: Project[] = [
-  {
-    name: 'Linkd',
-    tagline: 'Cross-platform dating app',
-    description:
-      'Native iOS and Android clients backed by a single Express API. Onboarding and profile forms are server-driven JSON schemas rendered natively on each platform, chat runs over Socket.IO with typing indicators and push notifications, and a multi-tier recommendation service scores compatibility between candidates.',
-    stack: ['Swift', 'SwiftUI', 'Kotlin', 'Jetpack Compose', 'Node.js', 'Express', 'MongoDB', 'Socket.IO', 'FCM'],
-  },
-  {
-    name: 'Bot Trader',
-    tagline: 'Automated options trading dashboard',
-    description:
-      'Monitors trade signals from Discord and TradingView webhooks, parses them with an AI model, executes on Tradier, and tracks positions and stop losses live. A React dashboard streams quotes and P&L over Server-Sent Events, and signals fan out to Telegram.',
-    stack: ['React', 'Node.js', 'Playwright', 'Gemini', 'SSE', 'Tradier API', 'Telegram'],
-  },
   {
     name: 'P&L History Tracker',
     tagline: 'Chrome extension for traders',
@@ -123,29 +120,42 @@ export const earlierProjects: Project[] = [
 
 export const experience: Job[] = [
   {
-    role: 'Staff Web Developer',
-    company: 'ServiceNow',
-    location: 'Santa Clara, CA',
-    start: 'Mar 2022',
-    end: 'Present',
-  },
-  {
-    role: 'Senior Front End Developer',
+    role: 'Staff Software Engineer, Full Stack',
     company: 'ServiceNow',
     location: 'Santa Clara, CA',
     start: 'Oct 2018',
-    end: 'Feb 2022',
+    end: 'Present',
+    logo: './logos/servicenow.svg',
     summary:
-      'Marketing technology group: built web interfaces and single-page apps for ServiceNow global marketing events and managed the .com website with React, ES6, and SCSS.',
+      'Enterprise component library, AI Agent platform UI, and engineering standards for ServiceNow digital properties.',
+    highlights: [
+      'Architected and delivered an enterprise-scale component library serving 20+ ServiceNow applications, letting marketing teams launch customer events, campaigns, and products 60% faster.',
+      'Built the ServiceNow AI Agent platform UI, including an orchestrator framework for multi-agent coordination, an intelligent model-selection system, and RAG tools for context-aware AI responses.',
+      'Led technical onboarding and mentored 8+ mid-level engineers, cutting ramp-up time by 50% through structured training and code review.',
+      'Engineered 50+ reusable React components documented in Storybook, raising development velocity by 40% and keeping UI consistent across AEM digital properties.',
+      'Wrote custom React hooks for local storage and API integration, reducing boilerplate by 35% and lifting test coverage to 85%.',
+      'Implemented mobile-first responsive design in SCSS with 100% cross-browser compatibility.',
+      'Integrated RESTful APIs for real-time data in internal tools used by 500+ employees and in customer-facing applications.',
+      'Set code-quality standards and ran 200+ code reviews, reducing production bugs by 30% while keeping coverage above 85%.',
+      'Led upgrades to React 18, TypeScript 5.0, and Webpack 5 to modernize the stack.',
+    ],
+    stack: ['React', 'TypeScript', 'Node.js', 'Storybook', 'SCSS', 'Adobe AEM', 'AI Agents', 'RAG'],
   },
   {
-    role: 'Front End Developer',
+    role: 'Full Stack Developer',
     company: 'Intel',
     location: 'San Jose, CA',
     start: 'Feb 2018',
-    end: 'Oct 2018',
-    summary:
-      'Integration team: built and customized Adobe AEM components to match intel.com styles using ES6, Node.js, and SCSS.',
+    end: 'Sep 2018',
+    logo: './logos/intel.svg',
+    summary: 'Altera–Intel web integration and custom AEM components for intel.com.',
+    highlights: [
+      'Delivered the Altera–Intel web integration, migrating 30+ pages and localizing content for 12 international markets.',
+      'Built 15+ custom AEM components so business users could create and manage content on their own, reducing developer dependency by 70%.',
+      'Engineered responsive web solutions with Node.js, JavaScript, and SASS, reaching 98% cross-browser compatibility across desktop and mobile.',
+      'Partnered with UX designers and backend teams on pixel-perfect implementations that meet WCAG 2.0 accessibility standards.',
+    ],
+    stack: ['Adobe AEM', 'Node.js', 'JavaScript', 'SASS', 'WCAG 2.0'],
   },
   {
     role: 'UI Developer',
@@ -153,17 +163,28 @@ export const experience: Job[] = [
     location: 'Cupertino, CA',
     start: 'Jun 2016',
     end: 'Jan 2018',
-    summary:
-      'AppleCare: front-end development on AEM components and web and Node.js applications for test automation.',
+    logo: './logos/apple.svg',
+    summary: 'Localized product pages and a reusable React component library for internal applications.',
+    highlights: [
+      'Developed and localized Apple product pages for 20+ product lines across 15 international markets, supporting millions of customer interactions.',
+      'Architected a reusable React component library with 25+ components, speeding up feature development by 50% for internal applications.',
+      'Resolved 40+ AEM rendering issues for a consistent experience across platforms.',
+    ],
+    stack: ['React', 'Adobe AEM', 'JavaScript', 'Localization'],
   },
   {
     role: 'Web UI Developer',
     company: 'Goji',
     location: 'Boston, MA',
-    start: 'Mar 2016',
+    start: 'Feb 2016',
     end: 'May 2016',
-    summary:
-      'Responsive company website, internal sales-analytics tools, and a Swagger-based documentation site for public REST APIs.',
+    note: 'Consumer United · start-up',
+    summary: 'Auto insurance shopping platform and real-time analytics for insurance agents.',
+    highlights: [
+      'Delivered a complete auto insurance shopping platform as an AngularJS single-page app with a 2-second average page load on mobile and desktop.',
+      'Built a real-time analytics dashboard tracking performance for 50+ insurance agents across multiple time periods with live data visualization.',
+    ],
+    stack: ['AngularJS', 'JavaScript', 'Data visualization'],
   },
   {
     role: 'Full Stack Web Developer',
@@ -171,24 +192,38 @@ export const experience: Job[] = [
     location: 'Arlington Heights, IL',
     start: 'Jul 2015',
     end: 'Nov 2015',
-    summary: 'Refactored internal applications from Perl to Handlebars.js and shipped features and fixes across AT&T repositories.',
+    logo: './logos/att.svg',
+    note: 'Internship',
+    summary: 'Modernized a legacy JavaScript application and its templates.',
+    highlights: [
+      'Modernized a legacy JavaScript application by migrating it to Handlebars.js and AngularJS, improving maintainability by 60%.',
+      'Integrated RESTful API calls for dynamic data fetching, reducing page refreshes and improving the user experience.',
+      'Designed and built responsive HTML5/CSS3 templates with rich internet application features, resolving 25+ cross-browser issues.',
+    ],
+    stack: ['Handlebars.js', 'AngularJS', 'REST', 'HTML5', 'CSS3'],
   },
   {
     role: 'Web UI/UX Developer',
     company: 'Nielsen',
     location: 'Chicago, IL',
-    start: 'Apr 2015',
+    start: 'Mar 2015',
     end: 'Jun 2015',
-    summary:
-      'Built Nielsen Market Analytics, an interactive Ext JS app with rich tables and charts, and an appointment-booking app for Nielsen agents.',
+    logo: './logos/nielsen.svg',
+    note: 'Internship',
+    summary: 'Data-visualization single-page app for complex analytics datasets.',
+    highlights: [
+      'Engineered a data-visualization SPA in Ext JS with interactive charts and graphs for complex analytics datasets.',
+      'Implemented an MVC architecture and fixed 30+ browser compatibility issues across Internet Explorer, Firefox, and Chrome for 100% cross-browser support.',
+    ],
+    stack: ['Ext JS', 'JavaScript', 'MVC'],
   },
 ]
 
 export const skills: { group: string; items: string[] }[] = [
-  { group: 'Mobile', items: ['Swift', 'SwiftUI', 'Kotlin', 'Jetpack Compose', 'Retrofit'] },
-  { group: 'Frontend', items: ['React', 'TypeScript', 'JavaScript (ES6+)', 'HTML5', 'CSS3 / SCSS', 'Adobe AEM'] },
-  { group: 'Backend', items: ['Node.js', 'Express', 'Socket.IO', 'REST APIs', 'Server-Sent Events'] },
-  { group: 'Data & Infra', items: ['MongoDB', 'Mongoose', 'Redis', 'Firebase Cloud Messaging', 'Playwright'] },
+  { group: 'Languages & Frameworks', items: ['JavaScript (ES6+)', 'TypeScript', 'React', 'Redux', 'Node.js', 'Express'] },
+  { group: 'Web', items: ['HTML5', 'CSS3', 'SASS / LESS', 'Bootstrap', 'REST APIs', 'webpack', 'Storybook', 'Adobe AEM'] },
+  { group: 'AI', items: ['Claude Code', 'Prompt engineering', 'MCP', 'Agents', 'RAG', 'AI workflows'] },
+  { group: 'Mobile & Data', items: ['Swift', 'SwiftUI', 'Kotlin', 'Jetpack Compose', 'MongoDB', 'Socket.IO'] },
 ]
 
 export const education: Education[] = [
@@ -196,7 +231,8 @@ export const education: Education[] = [
     degree: 'M.S., Information Technology and Management',
     school: 'Illinois Institute of Technology',
     location: 'Chicago, IL',
-    years: '2014 – 2016',
+    years: '2014 – Dec 2015',
+    note: 'GPA 3.6 / 4.0',
   },
   {
     degree: 'B.Tech., Computer Science and Engineering',
@@ -204,4 +240,9 @@ export const education: Education[] = [
     location: 'Hyderabad, India',
     years: '2009 – 2013',
   },
+]
+
+export const certifications: Certification[] = [
+  { name: 'Claude Certified Architect – Foundations', issuer: 'Anthropic', year: '2026' },
+  { name: 'Programming in HTML5 with JavaScript and CSS3', issuer: 'Microsoft Specialist', year: '2014' },
 ]
