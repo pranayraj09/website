@@ -1,6 +1,6 @@
 import { Html, RoundedBox } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import * as THREE from 'three'
 import { certifications, experience, type Certification, type Job } from '../content'
 import { Basement } from './Basement'
@@ -9,6 +9,8 @@ import { C } from './palette'
 import { basementStops, HATCH, stops, type Stop, type Vec3 } from './stops'
 import { FONT, roundRect, useCanvasTexture, wrapText } from './textures'
 
+
+const FocusedView = createContext(false)
 
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
@@ -33,6 +35,7 @@ function Hotspot({
 }) {
   const ref = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
+  const still = useContext(FocusedView)
   const lit = hovered && !disabled
   const canvas = useThree((state) => state.gl.domElement)
   const portal = useMemo(() => ({ current: canvas.parentElement as HTMLElement }), [canvas])
@@ -40,7 +43,7 @@ function Hotspot({
   useFrame((_, dt) => {
     const group = ref.current
     if (!group) return
-    group.position.y = THREE.MathUtils.damp(group.position.y, lit || raised ? 0.1 : 0, 10, dt)
+    group.position.y = THREE.MathUtils.damp(group.position.y, raised || (lit && !still) ? 0.1 : 0, 10, dt)
   })
 
   useEffect(() => {
@@ -717,11 +720,13 @@ function CameraRig({
   focus,
   place,
   descending,
+  still,
 }: {
   motion: RefObject<Motion>
   focus: Vec3 | null
   place: Place
   descending: boolean
+  still: boolean
 }) {
   const pos = useRef(roomKeys[0].pos.clone())
   const look = useRef(roomKeys[0].look.clone())
@@ -798,8 +803,8 @@ function CameraRig({
       look.current.z = THREE.MathUtils.damp(look.current.z, goalLook.z, lambda, dt)
       shift.current = THREE.MathUtils.damp(shift.current, goalShift, lambda, dt)
     }
-    tilt.current.x = THREE.MathUtils.damp(tilt.current.x, x, 3, dt)
-    tilt.current.y = THREE.MathUtils.damp(tilt.current.y, y, 3, dt)
+    tilt.current.x = THREE.MathUtils.damp(tilt.current.x, still ? 0 : x, 3, dt)
+    tilt.current.y = THREE.MathUtils.damp(tilt.current.y, still ? 0 : y, 3, dt)
 
     camera.position.copy(pos.current)
     camera.lookAt(look.current)
@@ -902,6 +907,7 @@ export default function Room({
 }) {
   const focusIndex = focusJob ? experience.indexOf(focusJob) : -1
   const focus = focusIndex >= 0 ? logoPosition(focusIndex) : null
+  const focused = focus !== null || (activeId !== undefined && !['home', 'room', 'basement'].includes(activeId))
   const motion = useRef<Motion>({ progress: 0, x: 0, y: 0 })
   useEffect(() => {
     const state = motion.current
@@ -942,8 +948,15 @@ export default function Room({
         shadow-bias={-0.0004}
         shadow-normalBias={0.02}
       />
-      <CameraRig motion={motion} focus={place === 'room' ? focus : null} place={place} descending={descending} />
-      <Intro>
+      <CameraRig
+        motion={motion}
+        focus={place === 'room' ? focus : null}
+        place={place}
+        descending={descending}
+        still={focused}
+      />
+      <FocusedView.Provider value={focused}>
+        <Intro>
         {place === 'room' ? (
           <>
             <Shell />
@@ -962,7 +975,8 @@ export default function Room({
         ) : (
           <Basement />
         )}
-      </Intro>
+        </Intro>
+      </FocusedView.Provider>
     </Canvas>
   )
 }

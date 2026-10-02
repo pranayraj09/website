@@ -979,6 +979,10 @@ html.tour-mode {
   letter-spacing: -0.035em;
 }
 
+.panel__title:last-child {
+  margin-bottom: 0;
+}
+
 .panel .card {
   padding: 18px 20px;
   border-radius: 18px;

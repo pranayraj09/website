@@ -255,7 +255,7 @@ export const certifications: Certification[] = [
   { name: 'Programming in HTML5 with JavaScript and CSS3', issuer: 'Microsoft Specialist', year: '2014', badge: '/logos/javascript.svg' },
 ]
 
-export type BasementSpot = { id: string; title: string }
+export type BasementSpot = { id: string; title: string; text?: string }
 
 export const basementSpots: BasementSpot[] = [
   {
@@ -269,13 +269,16 @@ export const basementSpots: BasementSpot[] = [
   {
     id: 'us',
     title: 'Player 1 & Player 2',
+    text: 'Me and my 3 year old little gamer.',
   },
   {
     id: 'toys',
     title: 'Toy corner',
+    text: 'Her other play area.',
   },
   {
     id: 'ai',
     title: 'The AI crew',
+    text: 'My play area.',
   },
 ]

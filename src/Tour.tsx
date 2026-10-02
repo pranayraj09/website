@@ -189,6 +189,7 @@ export function Tour({
                   <div className="container stop__inner">
                     <div className="panel">
                       <h2 className="panel__title">{spot.title}</h2>
+                      {spot.text && <p className="panel__text">{spot.text}</p>}
                     </div>
                   </div>
                 ) : (
