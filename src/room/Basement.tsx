@@ -1,7 +1,8 @@
 import { RoundedBox } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { useAvatar, type AvatarKind } from './Avatar'
 import { Mat } from './Mat'
 import { C } from './palette'
 import type { Vec3 } from './stops'
@@ -20,14 +21,11 @@ const B = {
   pink: '#f2a7c3',
   red: '#f27474',
   yellow: '#ffd166',
-  hair: '#1d1a24',
-  skin: '#e2b591',
-  skinKid: '#efc6a4',
   pad: '#22232f',
   glow: '#8ef3ff',
 }
 
-export function Limb({ from, to, r, color }: { from: Vec3; to: Vec3; r: number; color: string }) {
+function Limb({ from, to, r, color }: { from: Vec3; to: Vec3; r: number; color: string }) {
   const { mid, quat, len } = useMemo(() => {
     const a = new THREE.Vector3(...from)
     const b = new THREE.Vector3(...to)
@@ -291,7 +289,7 @@ function TvCorner() {
 
 function Controller() {
   return (
-    <group position={[0, 0.4, -0.33]} rotation={[-0.5, 0, 0]}>
+    <group>
       <RoundedBox args={[0.15, 0.035, 0.075]} radius={0.015} castShadow>
         <Mat color={B.pad} />
       </RoundedBox>
@@ -329,218 +327,45 @@ function Controller() {
   )
 }
 
-const torsoGeometry = new THREE.LatheGeometry(
-  [
-    [0.001, 0],
-    [0.15, 0],
-    [0.16, 0.07],
-    [0.142, 0.2],
-    [0.16, 0.32],
-    [0.185, 0.42],
-    [0.185, 0.47],
-    [0.135, 0.52],
-    [0.055, 0.55],
-    [0.001, 0.55],
-  ].map(([x, y]) => new THREE.Vector2(x, y)),
-  32,
-)
-
-const skirtGeometry = new THREE.LatheGeometry(
-  [
-    [0.15, 0.2],
-    [0.17, 0.12],
-    [0.22, 0.02],
-    [0.24, -0.02],
-  ].map(([x, y]) => new THREE.Vector2(x, y)),
-  32,
-)
-
-function Hair({ kid }: { kid: boolean }) {
-  return (
-    <group>
-      <mesh position={[0, 0.012, 0.004]} rotation={[0.55, 0, 0]} scale={[0.96, 1.08, 1.02]} castShadow>
-        <sphereGeometry args={[0.126, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
-        <Mat color={B.hair} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[0, -0.01, 0.03]} scale={[0.86, 0.95, 0.85]} castShadow>
-        <sphereGeometry args={[0.122, 24, 16]} />
-        <Mat color={B.hair} />
-      </mesh>
-      {kid
-        ? [-0.055, -0.018, 0.018, 0.055].map((x) => (
-            <mesh key={x} position={[x, 0.07, -0.09]} rotation={[0.5, 0, x * 3]} scale={[1.1, 0.42, 0.65]}>
-              <sphereGeometry args={[0.038, 14, 10]} />
-              <Mat color={B.hair} />
-            </mesh>
-          ))
-        : [
-            [-0.05, 0.1, -0.055, 0.3],
-            [0.005, 0.118, -0.068, 0],
-            [0.058, 0.102, -0.05, -0.3],
-          ].map(([x, y, z, r]) => (
-            <mesh key={x} position={[x, y, z]} rotation={[0.4, 0, r]} scale={[1.15, 0.55, 0.95]} castShadow>
-              <sphereGeometry args={[0.05, 16, 12]} />
-              <Mat color={B.hair} />
-            </mesh>
-          ))}
-      {kid &&
-        [-1, 1].map((s) => (
-          <group key={s} position={[s * 0.1, -0.03, 0.045]}>
-            {[0, 1, 2, 3, 4, 5].map((k) => (
-              <mesh
-                key={k}
-                position={[s * k * 0.008 + (k % 2 ? 0.006 : -0.006), -k * 0.04, 0]}
-                rotation={[0, 0, (k % 2 ? 0.45 : -0.45) * s]}
-                scale={[0.8, 1.3, 0.8]}
-                castShadow
-              >
-                <sphereGeometry args={[0.026 - k * 0.0015, 12, 10]} />
-                <Mat color={B.hair} />
-              </mesh>
-            ))}
-            <mesh position={[s * 0.045, -0.245, 0]} castShadow>
-              <torusGeometry args={[0.016, 0.008, 8, 16]} />
-              <Mat color={B.pink} />
-            </mesh>
-            <mesh position={[s * 0.047, -0.28, 0]} rotation={[Math.PI, 0, 0]}>
-              <coneGeometry args={[0.018, 0.05, 10]} />
-              <Mat color={B.hair} />
-            </mesh>
-          </group>
-        ))}
-    </group>
-  )
+const HANDS: Record<AvatarKind, [string, string]> = {
+  me: ['Bip01_L_Hand', 'Bip01_R_Hand'],
+  kid: ['Bip02_L_Hand', 'Bip02_R_Hand'],
 }
 
-function Face({ skin }: { skin: string }) {
-  return (
-    <group>
-      <mesh scale={[0.92, 1.06, 0.98]} castShadow>
-        <sphereGeometry args={[0.12, 32, 24]} />
-        <Mat color={skin} />
-      </mesh>
-      {[-1, 1].map((s) => (
-        <group key={s}>
-          <mesh position={[s * 0.108, -0.005, 0.005]} scale={[0.45, 1, 0.75]}>
-            <sphereGeometry args={[0.028, 12, 10]} />
-            <Mat color={skin} />
-          </mesh>
-          <mesh position={[s * 0.042, 0.012, -0.104]} scale={[1, 0.78, 0.5]}>
-            <sphereGeometry args={[0.02, 14, 10]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.3} />
-          </mesh>
-          <mesh position={[s * 0.04, 0.01, -0.113]}>
-            <sphereGeometry args={[0.0105, 12, 10]} />
-            <meshStandardMaterial color="#2b1d16" roughness={0.2} />
-          </mesh>
-          <mesh position={[s * 0.043, 0.048, -0.104]} rotation={[0, 0, s * -0.15]}>
-            <capsuleGeometry args={[0.005, 0.03, 4, 8]} />
-            <Mat color={B.hair} />
-          </mesh>
-          <mesh position={[s * 0.07, -0.035, -0.088]} scale={[1, 0.6, 0.4]}>
-            <sphereGeometry args={[0.02, 10, 8]} />
-            <meshStandardMaterial color="#f2a08f" roughness={0.9} transparent opacity={0.45} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[0, -0.015, -0.118]} scale={[0.8, 1.1, 1]}>
-        <sphereGeometry args={[0.016, 12, 10]} />
-        <Mat color={skin} />
-      </mesh>
-      <group position={[0, -0.056, -0.103]} rotation={[-0.35, 0, 0]}>
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * 0.008, 0.006, 0]} rotation={[0, 0, s * -0.18]} scale={[1, 0.42, 0.5]}>
-            <sphereGeometry args={[0.013, 14, 10]} />
-            <meshStandardMaterial color="#c97a72" roughness={0.6} />
-          </mesh>
-        ))}
-        <mesh position={[0, -0.005, 0.001]} scale={[1.45, 0.55, 0.55]}>
-          <sphereGeometry args={[0.0135, 16, 10]} />
-          <meshStandardMaterial color="#d48a80" roughness={0.5} />
-        </mesh>
-      </group>
-    </group>
-  )
-}
+function Gamer({ kind, position, scale }: { kind: AvatarKind; position: Vec3; scale: number }) {
+  const { root, scene, actions } = useAvatar(kind)
+  const pad = useRef<THREE.Group>(null)
+  const hands = useMemo(() => HANDS[kind].map((name) => scene.getObjectByName(name)), [kind, scene])
+  const a = useMemo(() => new THREE.Vector3(), [])
+  const b = useMemo(() => new THREE.Vector3(), [])
 
-function Person({
-  position,
-  scale = 1,
-  head = 1,
-  skin,
-  top,
-  bottom,
-  shoe,
-  kid = false,
-}: {
-  position: Vec3
-  scale?: number
-  head?: number
-  skin: string
-  top: string
-  bottom: string
-  shoe: string
-  kid?: boolean
-}) {
+  useEffect(() => {
+    const sit = actions.sit
+    sit?.setLoop(THREE.LoopPingPong, Infinity).play()
+    return () => {
+      sit?.stop()
+    }
+  }, [actions])
+
+  useFrame(() => {
+    const [left, right] = hands
+    if (!pad.current || !root.current || !left || !right) return
+    left.getWorldPosition(a)
+    right.getWorldPosition(b)
+    root.current.worldToLocal(a.add(b).multiplyScalar(0.5))
+    pad.current.position.copy(a)
+  })
+
   return (
-    <group position={position} scale={scale}>
-      {[-1, 1].map((s) => (
-        <group key={s}>
-          <Limb from={[s * 0.09, 0.08, 0.02]} to={[s * 0.1, 0.08, -0.38]} r={0.07} color={kid ? C.primarySoft : bottom} />
-          <Limb from={[s * 0.1, 0.07, -0.42]} to={[s * 0.1, -0.3, -0.46]} r={0.052} color={kid ? C.primarySoft : bottom} />
-          {kid && (
-            <mesh position={[s * 0.1, -0.3, -0.465]}>
-              <cylinderGeometry args={[0.056, 0.056, 0.05, 14]} />
-              <Mat color={C.white} />
-            </mesh>
-          )}
-          <group position={[s * 0.1, -0.37, -0.5]}>
-            <RoundedBox args={[0.1, 0.07, 0.19]} radius={0.03} castShadow>
-              <Mat color={shoe} />
-            </RoundedBox>
-            <RoundedBox args={[0.108, 0.024, 0.2]} radius={0.01} position={[0, -0.035, -0.004]}>
-              <Mat color="#e9eaf3" />
-            </RoundedBox>
+    <group ref={root} position={position} rotation={[0, Math.PI, 0]}>
+      <primitive object={scene} scale={scale} />
+      <group ref={pad}>
+        <group position={[0, 0.01, 0.07]} rotation={[0, Math.PI, 0]} scale={kind === 'kid' ? 0.85 : 1}>
+          <group rotation={[-0.5, 0, 0]}>
+            <Controller />
           </group>
-          <Limb from={[s * 0.175, 0.57, 0.01]} to={[s * 0.205, 0.45, -0.05]} r={0.056} color={top} />
-          <Limb from={[s * 0.18, 0.55, 0]} to={[s * 0.215, 0.36, -0.1]} r={0.042} color={skin} />
-          <Limb from={[s * 0.215, 0.36, -0.1]} to={[s * 0.1, 0.39, -0.28]} r={0.038} color={skin} />
-          <mesh position={[s * 0.085, 0.39, -0.31]} rotation={[0, s * 0.4, 0]} scale={[0.85, 0.62, 1.15]} castShadow>
-            <sphereGeometry args={[0.042, 14, 10]} />
-            <Mat color={skin} />
-          </mesh>
-          <Limb from={[s * 0.06, 0.41, -0.31]} to={[s * 0.04, 0.43, -0.345]} r={0.012} color={skin} />
         </group>
-      ))}
-      <RoundedBox args={[0.32, 0.14, 0.26]} radius={0.06} position={[0, 0.07, 0.01]} castShadow>
-        <Mat color={kid ? C.primarySoft : bottom} />
-      </RoundedBox>
-      <mesh geometry={torsoGeometry} position={[0, 0.08, 0.02]} rotation={[-0.1, 0, 0]} scale={[1, 1, 0.66]} castShadow>
-        <Mat color={top} />
-      </mesh>
-      {kid ? (
-        <mesh geometry={skirtGeometry} position={[0, 0.08, -0.02]} scale={[1, 1, 0.9]} castShadow>
-          <Mat color={top} side={THREE.DoubleSide} />
-        </mesh>
-      ) : (
-        <mesh position={[0, 0.14, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.66, 1]}>
-          <torusGeometry args={[0.152, 0.014, 8, 32]} />
-          <Mat color="#3a3a8c" />
-        </mesh>
-      )}
-      <mesh position={[0, 0.635, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.058, 0.014, 8, 24]} />
-        <Mat color={kid ? '#ffffff' : '#7b7be0'} />
-      </mesh>
-      <mesh position={[0, 0.67, -0.01]} castShadow>
-        <cylinderGeometry args={[0.042, 0.048, 0.09, 14]} />
-        <Mat color={skin} />
-      </mesh>
-      <group position={[0, 0.8, -0.03]} scale={head}>
-        <Face skin={skin} />
-        <Hair kid={kid} />
       </group>
-      <Controller />
     </group>
   )
 }
@@ -564,8 +389,10 @@ function Sofa() {
           <Mat color={B.sofa} />
         </RoundedBox>
       ))}
-      <Person position={[-0.42, 0.54, 0]} skin={B.skin} top={C.primary} bottom="#3b4a72" shoe={C.white} />
-      <Person position={[0.42, 0.54, 0.05]} scale={0.6} head={1.22} skin={B.skinKid} top={B.pink} bottom={B.pink} shoe="#e46a9a" kid />
+      <Suspense fallback={null}>
+        <Gamer kind="me" position={[-0.42, 0, 0.08]} scale={0.011} />
+        <Gamer kind="kid" position={[0.42, 0.14, 0.1]} scale={0.0088} />
+      </Suspense>
     </group>
   )
 }

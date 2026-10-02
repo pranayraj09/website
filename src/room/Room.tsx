@@ -1,9 +1,9 @@
 import { Html, RoundedBox } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import * as THREE from 'three'
 import { certifications, experience, type Certification, type Job } from '../content'
-import { Android } from './Android'
+import { Me } from './Me'
 import { Basement } from './Basement'
 import { Mat } from './Mat'
 import { C } from './palette'
@@ -633,10 +633,12 @@ function Plant() {
   )
 }
 
-function AboutBot() {
+function AboutMe({ wander }: { wander: boolean }) {
   return (
-    <Hotspot target="about" label="About me" tag={[1.3, 1.85, 1.3]}>
-      <Android position={[1.3, 0, 1.3]} rotation={0.75} />
+    <Hotspot target="about" label="About me" tag={[1.3, 2.9, 1.3]}>
+      <Suspense fallback={null}>
+        <Me home={[1.3, 1.3]} heading={0.75} wander={wander} />
+      </Suspense>
     </Hotspot>
   )
 }
@@ -923,7 +925,7 @@ export default function Room({
             <Pinboard />
             <Cabinet />
             <Plant />
-            <AboutBot />
+            <AboutMe wander={activeId === undefined || activeId === 'home'} />
             <Hatch open={descending} startOpen={returning} />
           </>
         ) : (
