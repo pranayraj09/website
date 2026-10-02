@@ -17,4 +17,15 @@ All copy (bio, projects, skills, education, links) lives in `src/content.ts`. La
 
 ## Deploy
 
-Pushing to `master` runs `.github/workflows/deploy.yml`, which builds the site and publishes it to GitHub Pages. Enable it once under **Settings → Pages → Source: GitHub Actions**. The build uses a relative base path, so it works both at `https://pranayraj09.github.io/website/` and on a custom domain.
+Pushing to `master` runs `.github/workflows/deploy.yml`, which lints, builds, and uploads `dist/` to the GoDaddy hosting for pranaykyatham.com over FTPS. Pull requests only lint and build.
+
+One-time setup in **GitHub → Settings → Secrets and variables → Actions**:
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `FTP_SERVER` | secret | FTP host from cPanel → FTP Accounts (e.g. `ftp.pranaykyatham.com`) |
+| `FTP_USERNAME` | secret | cPanel FTP username |
+| `FTP_PASSWORD` | secret | cPanel FTP password |
+| `FTP_SERVER_DIR` | variable (optional) | Upload folder relative to the FTP login root; defaults to `public_html/` |
+
+The upload only adds/replaces files it deployed (tracked in `.ftp-deploy-sync-state.json` on the server); other files already in `public_html/` are left alone. Deploy is skipped until `FTP_SERVER` is set.

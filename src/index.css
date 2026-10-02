@@ -280,7 +280,7 @@ h3 {
 
 .timeline li {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 170px 1fr;
   gap: 24px;
   padding: 20px 24px;
   border-radius: var(--radius);
@@ -301,6 +301,11 @@ h3 {
 .timeline p {
   margin: 4px 0 0;
   color: var(--muted);
+}
+
+.timeline__summary {
+  font-size: 0.95rem;
+  margin-top: 8px !important;
 }
 
 .contact {

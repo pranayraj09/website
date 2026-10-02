@@ -1,8 +1,9 @@
-import { about, earlierProjects, education, featuredProjects, profile, skills } from './content'
+import { about, earlierProjects, education, experience, featuredProjects, profile, skills } from './content'
 import type { Project } from './content'
 
 const sections = [
   { id: 'about', label: 'About' },
+  { id: 'experience', label: 'Experience' },
   { id: 'projects', label: 'Projects' },
   { id: 'skills', label: 'Skills' },
   { id: 'education', label: 'Education' },
@@ -67,6 +68,9 @@ export default function App() {
             <a className="button button--primary" href={`mailto:${profile.email}`}>
               Get in touch
             </a>
+            <a className="button" href={profile.resume} target="_blank" rel="noreferrer">
+              Resume
+            </a>
             {profile.links.map((link) => (
               <a key={link.href} className="button" href={link.href} target="_blank" rel="noreferrer">
                 {link.label}
@@ -82,6 +86,26 @@ export default function App() {
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
+        </section>
+
+        <section id="experience" className="section container">
+          <h2>Experience</h2>
+          <ol className="timeline">
+            {experience.map((job) => (
+              <li key={`${job.company}-${job.start}`}>
+                <span className="timeline__years">
+                  {job.start} – {job.end}
+                </span>
+                <div>
+                  <h3>{job.role}</h3>
+                  <p>
+                    {job.company} · {job.location}
+                  </p>
+                  {job.summary && <p className="timeline__summary">{job.summary}</p>}
+                </div>
+              </li>
+            ))}
+          </ol>
         </section>
 
         <section id="projects" className="section container">
