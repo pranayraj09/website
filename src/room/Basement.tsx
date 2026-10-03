@@ -327,17 +327,62 @@ function Controller() {
   )
 }
 
-const HANDS: Record<AvatarKind, [string, string]> = {
-  me: ['Bip01_L_Hand', 'Bip01_R_Hand'],
-  kid: ['Bip02_L_Hand', 'Bip02_R_Hand'],
-}
+const RIG: Record<AvatarKind, string> = { me: 'Bip01', kid: 'Bip02' }
+const X = new THREE.Vector3(1, 0, 0)
+const Z = new THREE.Vector3(0, 0, 1)
 
-function Gamer({ kind, position, scale }: { kind: AvatarKind; position: Vec3; scale: number }) {
+function Gamer({
+  kind,
+  position,
+  scale,
+  phase,
+  lean,
+  grip,
+}: {
+  kind: AvatarKind
+  position: Vec3
+  scale: number
+  phase: number
+  lean: number
+  grip?: Vec3
+}) {
   const { root, scene, actions } = useAvatar(kind)
   const pad = useRef<THREE.Group>(null)
-  const hands = useMemo(() => HANDS[kind].map((name) => scene.getObjectByName(name)), [kind, scene])
-  const a = useMemo(() => new THREE.Vector3(), [])
-  const b = useMemo(() => new THREE.Vector3(), [])
+  const rig = useMemo(() => {
+    const bone = (name: string) => scene.getObjectByName(`${RIG[kind]}_${name}`)
+    const bones = {
+      spine: bone('Spine1'),
+      neck: bone('Neck'),
+      head: bone('Head'),
+      upperL: bone('L_UpperArm'),
+      upperR: bone('R_UpperArm'),
+      armL: bone('L_Forearm'),
+      armR: bone('R_Forearm'),
+      handL: bone('L_Hand'),
+      handR: bone('R_Hand'),
+      thumbL: bone('L_Finger01'),
+      thumbR: bone('R_Finger01'),
+      fingers: ['L', 'R'].flatMap((side) =>
+        [1, 2, 3, 4].flatMap((f) => [bone(`${side}_Finger${f}`), bone(`${side}_Finger${f}1`)]),
+      ),
+    }
+    const rest = [bones.neck, bones.head].flatMap((b) => (b ? [[b, b.quaternion.clone()] as const] : []))
+    return { ...bones, rest }
+  }, [kind, scene])
+  const tmp = useMemo(
+    () => ({
+      a: new THREE.Vector3(),
+      b: new THREE.Vector3(),
+      axis: new THREE.Vector3(),
+      rootQ: new THREE.Quaternion(),
+      parentQ: new THREE.Quaternion(),
+      q: new THREE.Quaternion(),
+      joint: new THREE.Vector3(),
+      tip: new THREE.Vector3(),
+      goal: new THREE.Vector3(),
+    }),
+    [],
+  )
 
   useEffect(() => {
     const sit = actions.sit
@@ -347,20 +392,69 @@ function Gamer({ kind, position, scale }: { kind: AvatarKind; position: Vec3; sc
     }
   }, [actions])
 
-  useFrame(() => {
-    const [left, right] = hands
-    if (!pad.current || !root.current || !left || !right) return
-    left.getWorldPosition(a)
-    right.getWorldPosition(b)
-    root.current.worldToLocal(a.add(b).multiplyScalar(0.5))
-    pad.current.position.copy(a)
+  useFrame(({ clock }) => {
+    const group = root.current
+    if (!pad.current || !group || !rig.handL || !rig.handR) return
+    const t = clock.elapsedTime + phase
+    rig.rest.forEach(([bone, rest]) => bone.quaternion.copy(rest))
+
+    const turn = (bone: THREE.Object3D | undefined, axis: THREE.Vector3, angle: number) => {
+      if (!bone?.parent || angle === 0) return
+      group.getWorldQuaternion(tmp.rootQ)
+      bone.parent.getWorldQuaternion(tmp.parentQ)
+      tmp.axis.copy(axis).applyQuaternion(tmp.rootQ).applyQuaternion(tmp.parentQ.invert())
+      bone.quaternion.premultiply(tmp.q.setFromAxisAngle(tmp.axis, angle))
+    }
+    const reach = (hand: THREE.Object3D, chain: (THREE.Object3D | undefined)[], target: Vec3) => {
+      group.localToWorld(tmp.goal.set(...target))
+      for (let pass = 0; pass < 4; pass++) {
+        for (const bone of chain) {
+          if (!bone?.parent) continue
+          bone.getWorldPosition(tmp.joint)
+          hand.getWorldPosition(tmp.tip)
+          tmp.a.subVectors(tmp.tip, tmp.joint).normalize()
+          tmp.b.subVectors(tmp.goal, tmp.joint).normalize()
+          tmp.q.setFromUnitVectors(tmp.a, tmp.b)
+          bone.parent.getWorldQuaternion(tmp.parentQ)
+          bone.getWorldQuaternion(tmp.rootQ)
+          bone.quaternion.copy(tmp.parentQ.invert().multiply(tmp.q).multiply(tmp.rootQ))
+        }
+      }
+    }
+    const steer = Math.sin(t * 0.9) * 0.6 + Math.sin(t * 2.3 + 1.3) * 0.3 + Math.sin(t * 5.1) * 0.1
+    const bob = Math.sin(t * 1.7) * 0.5 + Math.sin(t * 3.9) * 0.5
+
+    turn(rig.spine, X, lean + bob * 0.025)
+    turn(rig.spine, Z, -steer * 0.07)
+    turn(rig.neck, Z, steer * 0.05)
+    turn(rig.head, X, -lean - 0.1 - bob * 0.02)
+    turn(rig.armL, X, -steer * 0.14 - bob * 0.03)
+    turn(rig.armR, X, steer * 0.14 - bob * 0.03)
+    turn(rig.handL, Z, steer * 0.1)
+    turn(rig.handR, Z, steer * 0.1)
+    if (grip) {
+      const [x, y, z] = grip
+      const lift = steer * 0.025 + bob * 0.008
+      reach(rig.handL, [rig.armL, rig.upperL], [x, y + lift, z])
+      reach(rig.handR, [rig.armR, rig.upperR], [-x, y - lift, z])
+      rig.fingers.forEach((finger) => finger?.rotateZ(0.7))
+    }
+    rig.thumbL?.rotateZ(Math.max(0, Math.sin(t * 9.0)) * 0.35)
+    rig.thumbR?.rotateZ(Math.max(0, Math.sin(t * 7.3 + 2)) * 0.35)
+
+    rig.handL.getWorldPosition(tmp.a)
+    rig.handR.getWorldPosition(tmp.b)
+    group.worldToLocal(tmp.a)
+    group.worldToLocal(tmp.b)
+    pad.current.position.addVectors(tmp.a, tmp.b).multiplyScalar(0.5)
+    pad.current.rotation.z = Math.atan2(tmp.a.y - tmp.b.y, tmp.a.x - tmp.b.x)
   })
 
   return (
     <group ref={root} position={position} rotation={[0, Math.PI, 0]}>
       <primitive object={scene} scale={scale} />
       <group ref={pad}>
-        <group position={[0, 0.01, 0.07]} rotation={[0, Math.PI, 0]} scale={kind === 'kid' ? 0.85 : 1}>
+        <group position={grip ? [0, -0.02, 0.05] : [0, 0.01, 0.07]} rotation={[0, Math.PI, 0]} scale={kind === 'kid' ? 0.85 : 1}>
           <group rotation={[-0.5, 0, 0]}>
             <Controller />
           </group>
@@ -390,8 +484,8 @@ function Sofa() {
         </RoundedBox>
       ))}
       <Suspense fallback={null}>
-        <Gamer kind="me" position={[-0.42, 0, 0.08]} scale={0.011} />
-        <Gamer kind="kid" position={[0.42, 0.14, 0.1]} scale={0.0088} />
+        <Gamer kind="me" position={[-0.42, 0, 0.04]} scale={0.011} phase={0} lean={0.25} />
+        <Gamer kind="kid" position={[0.42, 0.17, -0.22]} scale={0.0088} phase={2.4} lean={0.4} grip={[0.075, 0.62, 0.1]} />
       </Suspense>
     </group>
   )

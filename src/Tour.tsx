@@ -2,24 +2,55 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type Reac
 import { basementSpots, type Job } from './content'
 import { useReveal } from './parallax'
 import { basementStops, stops } from './room/stops'
-import { sections } from './sectionList'
+import { sections, type SectionActions } from './sectionList'
 import { HeroIntro, Marquee } from './sections'
 
 const Room = lazy(() => import('./room/Room'))
 
+function KnowMore({ className, hidden = false, onClick }: { className?: string; hidden?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={className ? `know-more ${className}` : 'know-more'}
+      onClick={onClick}
+      tabIndex={hidden ? -1 : undefined}
+      aria-hidden={hidden || undefined}
+    >
+      <span className="know-more__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path d="M3 6h5v4h4v4h4v4h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="know-more__text">
+        <b>Know more</b>
+        <span>There's more to me than code. Head down to the basement.</span>
+      </span>
+      <span className="know-more__cta">
+        Take the stairs
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    </button>
+  )
+}
+
 export function Tour({
-  onOpenJob,
+  actions,
   focusJob,
+  resumeOpen,
   footer,
 }: {
-  onOpenJob: (job: Job) => void
+  actions: SectionActions
   focusJob: Job | null
+  resumeOpen: boolean
   footer: ReactNode
 }) {
   const [active, setActive] = useState(0)
   const [place, setPlace] = useState<'room' | 'basement'>('room')
   const [phase, setPhase] = useState<'idle' | 'descending' | 'switching'>('idle')
   const [dark, setDark] = useState(false)
+  const [doorPrompt, setDoorPrompt] = useState(false)
   const count = useRef(stops.length)
   const busy = useRef(false)
   const pendingStop = useRef<number | null>(null)
@@ -55,6 +86,7 @@ export function Tour({
 
   const enterBasement = () => {
     if (phase !== 'idle') return
+    setDoorPrompt(false)
     setPhase('descending')
     later(3100, () => setDark(true))
     later(3950, () => {
@@ -84,6 +116,7 @@ export function Tour({
     const onScroll = () => {
       const progress = window.scrollY / window.innerHeight
       setActive(Math.round(progress))
+      if (progress > 0.5) setDoorPrompt(false)
       root.classList.toggle('tour-zoomed', progress > 1.5)
     }
     let locked = false
@@ -112,17 +145,33 @@ export function Tour({
       frame = requestAnimationFrame(waitForSettle)
       fallback = window.setTimeout(unlock, 1800)
     }
+    let panelWheelAt = 0
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || root.classList.contains('drawer-open')) return
+      const now = performance.now()
+      const panel = event.target instanceof Element ? event.target.closest('.panel') : null
+      if (panel && !busy.current) {
+        const room = event.deltaY > 0 ? panel.scrollHeight - panel.clientHeight - panel.scrollTop : panel.scrollTop
+        if (room > 1) {
+          panelWheelAt = now
+          return
+        }
+        if (now - panelWheelAt < 300) {
+          event.preventDefault()
+          panelWheelAt = now
+          return
+        }
+      }
       event.preventDefault()
       if (busy.current) return
-      lastInput = performance.now()
+      lastInput = now
       if (!locked && Math.abs(event.deltaY) >= 4) go(Math.sign(event.deltaY))
     }
     const onKey = (event: KeyboardEvent) => {
       if (root.classList.contains('drawer-open') || event.altKey || event.metaKey || event.ctrlKey) return
       const el = event.target instanceof Element ? event.target : null
       if (el?.closest('input, textarea, select, [contenteditable]')) return
+      if (event.key === 'Escape') setDoorPrompt(false)
       const forward = event.key === 'ArrowDown' || event.key === 'PageDown' || (event.key === ' ' && !event.shiftKey)
       const back = event.key === 'ArrowUp' || event.key === 'PageUp' || (event.key === ' ' && event.shiftKey)
       if (!forward && !back) return
@@ -147,13 +196,14 @@ export function Tour({
   }, [])
 
   const showExit = inBasement || active > 0
+  const showScroll = inBasement && phase === 'idle' && active < list.length - 1
 
   return (
     <>
       <button
         type="button"
         className={showExit ? 'tour-exit is-visible' : 'tour-exit'}
-        onClick={inBasement ? exitBasement : () => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onClick={inBasement ? exitBasement : () => window.scrollTo({ top: 0, behavior: 'instant' })}
         tabIndex={showExit ? 0 : -1}
         aria-hidden={!showExit}
       >
@@ -166,13 +216,28 @@ export function Tour({
         </svg>
         {inBasement ? 'Exit room' : 'Exit'}
       </button>
+      <button
+        type="button"
+        className={showScroll ? 'tour-scroll is-visible' : 'tour-scroll'}
+        onClick={() => window.scrollTo({ top: (active + 1) * window.innerHeight, behavior: 'smooth' })}
+        tabIndex={showScroll ? 0 : -1}
+        aria-hidden={!showScroll}
+      >
+        Scroll
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
       <div className={dark ? 'tour-fade is-dark' : 'tour-fade'} aria-hidden="true" />
       <div className="tour__stage" aria-hidden="true">
         <Suspense fallback={null}>
           <Room
             activeId={list[active]?.id}
             focusJob={focusJob}
-            onOpenJob={onOpenJob}
+            onOpenJob={actions.openJob}
+            onOpenResume={actions.openResume}
+            resumeOpen={resumeOpen}
+            onOpenDoor={() => setDoorPrompt((shown) => !shown)}
             place={place}
             descending={phase === 'descending'}
             returning={place === 'room' && phase === 'switching'}
@@ -209,6 +274,11 @@ export function Tour({
                     <HeroIntro hint="Scroll to step inside, or click anything in the room" />
                   </div>
                   <Marquee />
+                  <KnowMore
+                    className={doorPrompt ? 'know-more--door is-open' : 'know-more--door'}
+                    hidden={!doorPrompt}
+                    onClick={enterBasement}
+                  />
                 </section>
               )
             }
@@ -227,28 +297,12 @@ export function Tour({
                 <div className="container stop__inner">
                   <div className="panel">
                     {section.title && <h2 className="panel__title">{section.title}</h2>}
-                    {section.render(onOpenJob)}
+                    {section.render(actions)}
                   </div>
                 </div>
                 {stop.id === 'contact' && (
                   <>
-                    <button type="button" className="know-more" onClick={enterBasement}>
-                      <span className="know-more__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="24" height="24">
-                          <path d="M3 6h5v4h4v4h4v4h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <span className="know-more__text">
-                        <b>Know more</b>
-                        <span>There's more to me than code. Head down to the basement.</span>
-                      </span>
-                      <span className="know-more__cta">
-                        Take the stairs
-                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    </button>
+                    <KnowMore onClick={enterBasement} />
                     {footer}
                   </>
                 )}

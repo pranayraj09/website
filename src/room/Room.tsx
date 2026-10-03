@@ -3,6 +3,8 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import * as THREE from 'three'
 import { certifications, experience, type Certification, type Job } from '../content'
+import { jumpToSection } from '../jump'
+import { chores, logoPosition } from './chores'
 import { Me } from './Me'
 import { Basement } from './Basement'
 import { Mat } from './Mat'
@@ -13,9 +15,6 @@ import { FONT, roundRect, useCanvasTexture, wrapText } from './textures'
 
 const FocusedView = createContext(false)
 
-function scrollToSection(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-}
 
 function Hotspot({
   target,
@@ -71,7 +70,7 @@ function Hotspot({
           : (event) => {
               event.stopPropagation()
               if (onSelect) onSelect()
-              else if (target) scrollToSection(target)
+              else if (target) jumpToSection(target)
             }
       }
     >
@@ -112,7 +111,22 @@ function Shell() {
   )
 }
 
+const SKY = new THREE.Color('#d9ecff')
+const STORM = new THREE.Color('#ffd23f')
+const FLASH = new THREE.Color('#fffbe6')
+
 function Window() {
+  const glass = useRef<THREE.MeshBasicMaterial>(null)
+  const light = useRef<THREE.PointLight>(null)
+  const storm = useRef(0)
+  useFrame((state, dt) => {
+    storm.current = THREE.MathUtils.damp(storm.current, chores.storm, chores.storm > storm.current ? 1.6 : 0.5, dt)
+    const s = storm.current
+    const t = state.clock.elapsedTime
+    const flash = s * Math.pow(Math.max(0, Math.sin(t * 1.3) * Math.sin(t * 4.7) * Math.sin(t * 0.7)), 6)
+    glass.current?.color.lerpColors(SKY, STORM, s).lerp(FLASH, Math.min(1, flash * 3))
+    if (light.current) light.current.intensity = s * 1.4 + flash * 6
+  })
   return (
     <group position={[-2.98, 2.35, 1.5]}>
       <RoundedBox args={[0.12, 1.7, 1.6]} radius={0.04} castShadow>
@@ -120,8 +134,9 @@ function Window() {
       </RoundedBox>
       <mesh position={[0.065, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[1.38, 1.48]} />
-        <meshBasicMaterial color="#d9ecff" />
+        <meshBasicMaterial ref={glass} color={SKY} toneMapped={false} />
       </mesh>
+      <pointLight ref={light} position={[0.6, 0, 0]} intensity={0} distance={3.5} color="#ffd566" />
       <mesh position={[0.08, 0, 0]}>
         <boxGeometry args={[0.03, 1.48, 0.06]} />
         <Mat color={C.white} />
@@ -377,12 +392,127 @@ function Envelope() {
   )
 }
 
-function logoPosition(index: number): Vec3 {
-  const row = Math.floor(index / 3)
-  return [-2.68, 3.25 - row * 0.85, -(index % 3) * 0.8]
+const ORANGE = '#f08a32'
+
+const drawBookCover = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+  const fill = ctx.createLinearGradient(0, 0, w, h)
+  fill.addColorStop(0, '#f8a24a')
+  fill.addColorStop(1, '#e8742a')
+  ctx.fillStyle = fill
+  ctx.fillRect(0, 0, w, h)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'
+  ctx.lineWidth = 6
+  ctx.strokeRect(34, 34, w - 68, h - 68)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = `700 30px ${FONT}`
+  ctx.fillText('PRANAY RAJ KYATHAM', w / 2, 120)
+  ctx.fillStyle = '#ffffff'
+  roundRect(ctx, w / 2 - 70, 230, 140, 180, 16)
+  ctx.fillStyle = ORANGE
+  for (let i = 0; i < 5; i++) roundRect(ctx, w / 2 - 44, 270 + i * 26, i === 0 ? 60 : 88 - (i % 2) * 22, 10, 5)
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `800 84px ${FONT}`
+  ctx.fillText('View', w / 2, 520)
+  ctx.fillText('resume', w / 2, 610)
+  ctx.font = `600 30px ${FONT}`
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.fillText('Click to open', w / 2, 710)
 }
 
-function LogoBlock({ job, position }: { job: Job; position: [number, number, number] }) {
+const drawBookPage = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+  ctx.fillStyle = '#fffaf3'
+  ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = '#2a2d45'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.font = `800 42px ${FONT}`
+  ctx.fillText('Pranay Raj Kyatham', 50, 100)
+  ctx.fillStyle = ORANGE
+  ctx.font = `700 26px ${FONT}`
+  ctx.fillText('Staff Software Engineer', 50, 142)
+  for (let block = 0; block < 4; block++) {
+    const y = 210 + block * 145
+    ctx.fillStyle = '#2a2d45'
+    roundRect(ctx, 50, y, 180, 14, 7)
+    ctx.fillStyle = '#c9c6d6'
+    for (let line = 0; line < 4; line++) roundRect(ctx, 50, y + 32 + line * 24, w - 100 - ((line * 37) % 120), 9, 4)
+  }
+}
+
+function Book({ active, open, onOpen }: { active: boolean; open: boolean; onOpen: () => void }) {
+  const cover = useRef<THREE.Group>(null)
+  const [opening, setOpening] = useState(false)
+  const front = useCanvasTexture(600, 800, drawBookCover)
+  const page = useCanvasTexture(600, 800, drawBookPage)
+  const W = 0.3
+  const D = 0.4
+  useFrame((_, dt) => {
+    if (!cover.current) return
+    cover.current.rotation.z = THREE.MathUtils.damp(cover.current.rotation.z, open || opening ? 2.75 : 0, 4.5, dt)
+  })
+  const select = () => {
+    if (!active) {
+      jumpToSection('resume')
+      return
+    }
+    if (opening || open) return
+    setOpening(true)
+    window.setTimeout(() => {
+      onOpen()
+      setOpening(false)
+    }, 750)
+  }
+  return (
+    <Hotspot onSelect={select} label="Resume" tag={[0, 1.55, -1.93]}>
+      <group position={[0, 1.25, -1.93]} rotation={[0, 0.12, 0]}>
+        <RoundedBox args={[W, 0.012, D]} radius={0.004} position={[0, 0.006, 0]} castShadow receiveShadow>
+          <Mat color={ORANGE} />
+        </RoundedBox>
+        <mesh position={[0.006, 0.032, 0]} castShadow>
+          <boxGeometry args={[W - 0.016, 0.04, D - 0.016]} />
+          <Mat color="#fbf3e6" />
+        </mesh>
+        <mesh position={[0.006, 0.0525, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[W - 0.02, D - 0.02]} />
+          <meshBasicMaterial map={page} toneMapped={false} />
+        </mesh>
+        <RoundedBox args={[0.016, 0.066, D]} radius={0.006} position={[-W / 2, 0.033, 0]} castShadow>
+          <Mat color="#d9661f" />
+        </RoundedBox>
+        <group ref={cover} position={[-W / 2, 0.06, 0]}>
+          <RoundedBox args={[W, 0.012, D]} radius={0.004} position={[W / 2, 0, 0]} castShadow>
+            <Mat color={ORANGE} />
+          </RoundedBox>
+          <mesh position={[W / 2, 0.0065, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[W - 0.008, D - 0.008]} />
+            <meshBasicMaterial map={front} toneMapped={false} />
+          </mesh>
+          <mesh position={[W / 2, -0.0065, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[W - 0.02, D - 0.02]} />
+            <Mat color="#f3b77f" />
+          </mesh>
+        </group>
+      </group>
+    </Hotspot>
+  )
+}
+
+function LogoBlock({ job, index, position }: { job: Job; index: number; position: Vec3 }) {
+  const ref = useRef<THREE.Group>(null)
+  useFrame(() => {
+    const group = ref.current
+    if (!group) return
+    const [x, y, z] = position
+    if (chores.logo === index) {
+      group.position.set(x, y, z).add(chores.offset)
+      group.rotation.copy(chores.turn)
+    } else {
+      group.position.set(x, y, z)
+      group.rotation.set(0, 0, 0)
+    }
+  })
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D, w: number, h: number) => {
       ctx.fillStyle = '#ffffff'
@@ -399,9 +529,9 @@ function LogoBlock({ job, position }: { job: Job; position: [number, number, num
   )
   const texture = useCanvasTexture(512, 320, draw, job.logo)
   return (
-    <group position={position}>
+    <group ref={ref} position={position}>
       <RoundedBox args={[0.1, 0.42, 0.62]} radius={0.03} castShadow>
-        <Mat color={C.white} />
+        <Mat color={index === 0 ? C.primary : C.white} />
       </RoundedBox>
       <mesh position={[0.052, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[0.56, 0.35]} />
@@ -438,7 +568,7 @@ function Shelves({
             raised={focused === job}
             onSelect={() => onOpenJob(job)}
           >
-            <LogoBlock job={job} position={[x, y, z]} />
+            <LogoBlock job={job} index={i} position={[x, y, z]} />
           </Hotspot>
         )
       })}
@@ -615,6 +745,17 @@ function Plant() {
       }),
     [],
   )
+  const sway = useRef<(THREE.Group | null)[]>([])
+  const rustle = useRef(0)
+  useFrame((state, dt) => {
+    rustle.current = THREE.MathUtils.damp(rustle.current, chores.plant, 4, dt)
+    const t = state.clock.elapsedTime
+    sway.current.forEach((leaf, i) => {
+      if (!leaf) return
+      leaf.rotation.x = Math.sin(t * 9 + i * 1.7) * 0.07 * rustle.current
+      leaf.rotation.z = Math.sin(t * 7 + i * 2.3) * 0.05 * rustle.current
+    })
+  })
   return (
     <group position={[2.55, 0, -2.5]}>
       <mesh position={[0, 0.32, 0]} castShadow receiveShadow>
@@ -623,10 +764,16 @@ function Plant() {
       </mesh>
       {leaves.map((leaf, i) => (
         <group key={i} position={[0, 0.6, 0]} rotation={[0, leaf.angle, 0]}>
-          <mesh position={[0, leaf.height / 2, 0.18]} rotation={[leaf.tilt, 0, 0]} scale={[0.14, leaf.height / 2, 0.05]} castShadow>
-            <sphereGeometry args={[1, 16, 12]} />
-            <Mat color={i % 2 ? C.leaf : C.leafDark} />
-          </mesh>
+          <group
+            ref={(el) => {
+              sway.current[i] = el
+            }}
+          >
+            <mesh position={[0, leaf.height / 2, 0.18]} rotation={[leaf.tilt, 0, 0]} scale={[0.14, leaf.height / 2, 0.05]} castShadow>
+              <sphereGeometry args={[1, 16, 12]} />
+              <Mat color={i % 2 ? C.leaf : C.leafDark} />
+            </mesh>
+          </group>
         </group>
       ))}
     </group>
@@ -814,18 +961,156 @@ function Hatch({ open, startOpen }: { open: boolean; startOpen: boolean }) {
       </mesh>
       <pointLight ref={light} position={[0, 0.25, 0]} intensity={0} distance={2.2} color={C.warm} />
       <group ref={door} position={[0, 0.03, -0.4]}>
-        <RoundedBox args={[0.9, 0.05, 0.8]} radius={0.015} position={[0, 0.025, 0.4]} castShadow>
-          <Mat color={C.primaryPale} />
-        </RoundedBox>
+        <group position={[0, 0.025, 0.4]}>
+          <Planks width={0.9} depth={0.8} height={0.05} gap={0.006} />
+        </group>
         {[0.2, 0.6].map((z) => (
-          <RoundedBox key={z} args={[0.86, 0.012, 0.05]} radius={0.005} position={[0, 0.054, z]}>
-            <Mat color={C.primarySoft} />
+          <RoundedBox key={z} args={[0.86, 0.012, 0.06]} radius={0.005} position={[0, 0.056, z]}>
+            <Mat color={BATTEN} />
           </RoundedBox>
         ))}
         <mesh position={[0, 0.062, 0.7]} rotation={[Math.PI / 2, 0, 0]} castShadow>
           <torusGeometry args={[0.05, 0.012, 8, 20]} />
           <Mat color={C.ink} />
         </mesh>
+      </group>
+    </group>
+  )
+}
+
+const drawShaft = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+  const fill = ctx.createLinearGradient(0, h, 0, 0)
+  fill.addColorStop(0, 'rgba(255, 196, 110, 1)')
+  fill.addColorStop(0.35, 'rgba(255, 210, 140, 0.45)')
+  fill.addColorStop(1, 'rgba(255, 220, 160, 0)')
+  ctx.fillStyle = fill
+  ctx.fillRect(0, 0, w, h)
+}
+
+const WOOD = ['#b7804f', '#a46f3e', '#c08a58', '#aa7443', '#ba8552']
+const BATTEN = '#80522e'
+
+function Planks({ width, depth, height, gap }: { width: number; depth: number; height: number; gap: number }) {
+  const w = (width - gap * (WOOD.length - 1)) / WOOD.length
+  return (
+    <>
+      {WOOD.map((color, i) => (
+        <RoundedBox
+          key={color}
+          args={[w, height, depth]}
+          radius={0.004}
+          position={[-width / 2 + w / 2 + i * (w + gap), 0, 0]}
+          castShadow
+          receiveShadow
+        >
+          <Mat color={color} />
+        </RoundedBox>
+      ))}
+    </>
+  )
+}
+
+const PLANK_GAP = 0.014
+
+const SEAMS = [
+  { pos: [0, 0, 0.395], size: [0.88, 0.018], turn: 0 },
+  { pos: [0, 0, -0.395], size: [0.88, 0.018], turn: 0 },
+  { pos: [0.44, 0, 0], size: [0.018, 0.78], turn: Math.PI / 2 },
+  { pos: [-0.44, 0, 0], size: [0.018, 0.78], turn: Math.PI / 2 },
+] as const
+
+function DoorHint({ visible, onOpen }: { visible: boolean; onOpen: () => void }) {
+  const group = useRef<THREE.Group>(null)
+  const beams = useRef<THREE.Group>(null)
+  const level = useRef(0)
+  const [hovered, setHovered] = useState(false)
+  const lit = hovered && visible
+  const shaft = useCanvasTexture(32, 256, drawShaft)
+  const seam = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: '#ffb54d', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
+    [],
+  )
+  const beam = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        map: shaft,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      }),
+    [shaft],
+  )
+
+  useFrame((state, dt) => {
+    level.current = THREE.MathUtils.damp(level.current, visible ? (lit ? 1 : 0.4 + 0.4 * chores.door) : 0, 6, dt)
+    const flicker = 0.88 + 0.12 * Math.sin(state.clock.elapsedTime * 2.2) * Math.sin(state.clock.elapsedTime * 3.7)
+    const l = level.current
+    seam.opacity = Math.min(1, l * 2.2) * flicker
+    beam.opacity = l * 0.8 * flicker
+    if (beams.current) beams.current.scale.y = 0.25 + l * 1.15
+    if (group.current) group.current.visible = l > 0.005
+  })
+
+  useEffect(() => {
+    if (!lit) return
+    document.body.style.cursor = 'pointer'
+    return () => {
+      document.body.style.cursor = ''
+    }
+  }, [lit])
+
+  return (
+    <group
+      ref={group}
+      position={HATCH}
+      onPointerOver={
+        visible
+          ? (event) => {
+              event.stopPropagation()
+              setHovered(true)
+            }
+          : undefined
+      }
+      onPointerOut={visible ? () => setHovered(false) : undefined}
+      onClick={
+        visible
+          ? (event) => {
+              event.stopPropagation()
+              onOpen()
+            }
+          : undefined
+      }
+    >
+      {([[0, -0.42, 0.94, 0.035], [0, 0.42, 0.94, 0.035], [-0.47, 0, 0.035, 0.84], [0.47, 0, 0.035, 0.84]] as const).map(
+        ([x, z, w, d]) => (
+          <RoundedBox key={`${x}${z}`} args={[w, 0.012, d]} radius={0.004} position={[x, 0.006, z]} receiveShadow>
+            <Mat color={C.primarySoft} />
+          </RoundedBox>
+        ),
+      )}
+      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} material={seam}>
+        <planeGeometry args={[0.9, 0.8]} />
+      </mesh>
+      <group position={[0, 0.011, 0]}>
+        <Planks width={0.86} depth={0.76} height={0.016} gap={PLANK_GAP} />
+      </group>
+      {[-0.22, 0.22].map((z) => (
+        <RoundedBox key={z} args={[0.84, 0.01, 0.06]} radius={0.003} position={[0, 0.024, z]} castShadow>
+          <Mat color={BATTEN} />
+        </RoundedBox>
+      ))}
+      <mesh position={[0.3, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.035, 0.008, 8, 20]} />
+        <Mat color={C.ink} />
+      </mesh>
+      <group ref={beams}>
+        {SEAMS.filter(({ pos }) => pos[0] + pos[2] < 0).map(({ pos, size, turn }) => (
+          <mesh key={`${pos[0]}${pos[2]}`} position={[pos[0], 0.2, pos[2]]} rotation={[0, turn, 0]} material={beam}>
+            <planeGeometry args={[Math.max(size[0], size[1]), 0.4]} />
+          </mesh>
+        ))}
       </group>
     </group>
   )
@@ -853,10 +1138,16 @@ export default function Room({
   place,
   descending,
   returning,
+  onOpenResume,
+  resumeOpen,
+  onOpenDoor,
 }: {
   activeId: string | undefined
   focusJob: Job | null
   onOpenJob: (job: Job) => void
+  onOpenResume: () => void
+  resumeOpen: boolean
+  onOpenDoor: () => void
   place: Place
   descending: boolean
   returning: boolean
@@ -919,6 +1210,7 @@ export default function Room({
             <Window />
             <Desk />
             <Envelope />
+            <Book active={activeId === 'resume'} open={resumeOpen} onOpen={onOpenResume} />
             <Chair />
             <Shelves interactive={activeId === 'experience' || focus !== null} focused={focusJob} onOpenJob={onOpenJob} />
             <Frames />
@@ -927,6 +1219,10 @@ export default function Room({
             <Plant />
             <AboutMe wander={activeId === undefined || activeId === 'home'} />
             <Hatch open={descending} startOpen={returning} />
+            <DoorHint
+              visible={!descending && !returning && (activeId === undefined || activeId === 'home' || activeId === 'room')}
+              onOpen={onOpenDoor}
+            />
           </>
         ) : (
           <Basement />

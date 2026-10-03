@@ -205,6 +205,22 @@ export function CertificationsBody() {
   )
 }
 
+export function ResumeBody({ onOpenResume }: { onOpenResume: () => void }) {
+  return (
+    <div className="resume reveal">
+      <p className="panel__text">My experience, projects, skills and education, all in one PDF.</p>
+      <div className="resume__actions">
+        <button type="button" className="button button--primary" onClick={onOpenResume} aria-haspopup="dialog">
+          View resume
+        </button>
+        <a className="button" href={profile.resume} download>
+          Download PDF
+        </a>
+      </div>
+    </div>
+  )
+}
+
 export function ContactBody() {
   return (
     <div className="contact card reveal">

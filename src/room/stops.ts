@@ -15,6 +15,7 @@ export const stops: Stop[] = [
   { id: 'skills', side: 'left', camera: { pos: [-1.0, 2.6, 1.1], look: [-1.95, 2.15, -2.97], shift: 0.2 } },
   { id: 'education', side: 'right', camera: { pos: [1.0, 2.6, 3.0], look: [-2.6, 1.05, 0.9], shift: -0.2 } },
   { id: 'certifications', side: 'left', camera: { pos: [0.85, 2.95, 2.3], look: [0.75, 2.95, -2.97], shift: 0.2 } },
+  { id: 'resume', side: 'right', camera: { pos: [0.06, 3.15, -1.3], look: [0, 1.25, -1.93], shift: -0.2 } },
   { id: 'contact', side: 'right', camera: { pos: [2.7, 2.2, -0.75], look: [1.75, 1.3, -1.85], shift: -0.2 } },
 ]
 

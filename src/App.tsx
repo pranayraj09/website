@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { profile } from './content'
 import type { Job } from './content'
 import { JobDrawer } from './JobDrawer'
+import { jumpToSection } from './jump'
+import { ResumeModal } from './ResumeModal'
 import { useReveal, useSmoothParallax } from './parallax'
 import { sections } from './sectionList'
 import { HeroIntro, Marquee, SectionTitle } from './sections'
@@ -29,6 +31,10 @@ export default function App() {
     setDrawerOpen(true)
   }, [])
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+  const [resumeOpen, setResumeOpen] = useState(false)
+  const openResume = useCallback(() => setResumeOpen(true), [])
+  const closeResume = useCallback(() => setResumeOpen(false), [])
+  const actions = useMemo(() => ({ openJob, openResume }), [openJob, openResume])
 
   const footer = (
     <footer className="footer container">
@@ -62,7 +68,19 @@ export default function App() {
           <ul className="nav__links">
             {navLinks.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`}>{s.label}</a>
+                <a
+                  href={`#${s.id}`}
+                  onClick={
+                    has3D
+                      ? (event) => {
+                          event.preventDefault()
+                          jumpToSection(s.id)
+                        }
+                      : undefined
+                  }
+                >
+                  {s.label}
+                </a>
               </li>
             ))}
           </ul>
@@ -71,7 +89,7 @@ export default function App() {
 
       <main id="top">
         {has3D ? (
-          <Tour onOpenJob={openJob} focusJob={drawerOpen ? activeJob : null} footer={footer} />
+          <Tour actions={actions} focusJob={drawerOpen ? activeJob : null} resumeOpen={resumeOpen} footer={footer} />
         ) : (
           <>
             <section className="hero">
@@ -89,7 +107,7 @@ export default function App() {
             {sections.map((section, i) => (
               <section key={section.id} id={section.id} className="section container">
                 {section.title && <SectionTitle index={String(i + 1).padStart(2, '0')} title={section.title} />}
-                {section.render(openJob)}
+                {section.render(actions)}
               </section>
             ))}
           </>
@@ -99,6 +117,7 @@ export default function App() {
       {!has3D && footer}
 
       <JobDrawer job={activeJob} open={drawerOpen} onClose={closeDrawer} />
+      <ResumeModal open={resumeOpen} onClose={closeResume} />
     </>
   )
 }
