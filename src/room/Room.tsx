@@ -8,6 +8,7 @@ import { chores, logoPosition } from './chores'
 import { Me } from './Me'
 import { Basement } from './Basement'
 import { Mat } from './Mat'
+import { mood } from './mood'
 import { C } from './palette'
 import { basementStops, HATCH, stops, type Stop, type Vec3 } from './stops'
 import { FONT, roundRect, useCanvasTexture, wrapText } from './textures'
@@ -112,11 +113,14 @@ function Shell() {
 }
 
 const SKY = new THREE.Color('#d9ecff')
+const NIGHT_SKY = new THREE.Color('#1c2456')
+const DUSK = new THREE.Color()
 const STORM = new THREE.Color('#ffd23f')
 const FLASH = new THREE.Color('#fffbe6')
 
 function Window() {
   const glass = useRef<THREE.MeshBasicMaterial>(null)
+  const moon = useRef<THREE.MeshBasicMaterial>(null)
   const light = useRef<THREE.PointLight>(null)
   const storm = useRef(0)
   useFrame((state, dt) => {
@@ -124,7 +128,9 @@ function Window() {
     const s = storm.current
     const t = state.clock.elapsedTime
     const flash = s * Math.pow(Math.max(0, Math.sin(t * 1.3) * Math.sin(t * 4.7) * Math.sin(t * 0.7)), 6)
-    glass.current?.color.lerpColors(SKY, STORM, s).lerp(FLASH, Math.min(1, flash * 3))
+    DUSK.lerpColors(SKY, NIGHT_SKY, mood.night)
+    glass.current?.color.lerpColors(DUSK, STORM, s).lerp(FLASH, Math.min(1, flash * 3))
+    if (moon.current) moon.current.opacity = mood.night * (1 - s)
     if (light.current) light.current.intensity = s * 1.4 + flash * 6
   })
   return (
@@ -135,6 +141,10 @@ function Window() {
       <mesh position={[0.065, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[1.38, 1.48]} />
         <meshBasicMaterial ref={glass} color={SKY} toneMapped={false} />
+      </mesh>
+      <mesh position={[0.07, 0.38, -0.36]} rotation={[0, Math.PI / 2, 0]}>
+        <circleGeometry args={[0.13, 32]} />
+        <meshBasicMaterial ref={moon} color="#f6f1d6" transparent opacity={0} toneMapped={false} />
       </mesh>
       <pointLight ref={light} position={[0.6, 0, 0]} intensity={0} distance={3.5} color="#ffd566" />
       <mesh position={[0.08, 0, 0]}>
@@ -307,7 +317,19 @@ function Desk() {
   )
 }
 
+const BULB_OFF = new THREE.Color('#e6e6ee')
+const BULB_ON = new THREE.Color(C.warm)
+
 function Lamp() {
+  const bulb = useRef<THREE.MeshBasicMaterial>(null)
+  const halo = useRef<THREE.MeshBasicMaterial>(null)
+  const light = useRef<THREE.PointLight>(null)
+  useFrame(() => {
+    const n = mood.night
+    bulb.current?.color.lerpColors(BULB_OFF, BULB_ON, n)
+    if (halo.current) halo.current.opacity = n * 0.35
+    if (light.current) light.current.intensity = n * 3.5
+  })
   return (
     <group position={[-1.32, 1.25, 0.25]} rotation={[0, -0.6, 0]}>
       <mesh position={[0, 0.03, 0]} castShadow>
@@ -324,9 +346,13 @@ function Lamp() {
       </mesh>
       <mesh position={[0.33, 0.6, 0.09]}>
         <sphereGeometry args={[0.06, 16, 16]} />
-        <meshBasicMaterial color={C.warm} />
+        <meshBasicMaterial ref={bulb} color={BULB_OFF} />
       </mesh>
-      <pointLight position={[0.38, 0.5, 0.2]} intensity={2.2} distance={3.2} color={C.warm} />
+      <mesh position={[0.33, 0.6, 0.09]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshBasicMaterial ref={halo} color={C.warm} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <pointLight ref={light} position={[0.38, 0.5, 0.2]} intensity={0} distance={3.6} color={C.warm} />
     </group>
   )
 }
@@ -1116,6 +1142,75 @@ function DoorHint({ visible, onOpen }: { visible: boolean; onOpen: () => void })
   )
 }
 
+const DAY_SKY = new THREE.Color('#ffffff')
+const MOON_SKY = new THREE.Color('#7f88d8')
+const DAY_GROUND = new THREE.Color('#c9cbf6')
+const NIGHT_GROUND = new THREE.Color('#1e2048')
+const SUN = new THREE.Color('#ffffff')
+const MOONLIGHT = new THREE.Color('#9aa8ff')
+
+function Lighting({ night }: { night: boolean }) {
+  const hemi = useRef<THREE.HemisphereLight>(null)
+  const sun = useRef<THREE.DirectionalLight>(null)
+  const started = useRef(false)
+  useFrame((_, dt) => {
+    const goal = night ? 1 : 0
+    mood.night = started.current ? THREE.MathUtils.damp(mood.night, goal, 2.5, dt) : goal
+    started.current = true
+    const n = mood.night
+    if (hemi.current) {
+      hemi.current.intensity = THREE.MathUtils.lerp(1.7, 0.45, n)
+      hemi.current.color.lerpColors(DAY_SKY, MOON_SKY, n)
+      hemi.current.groundColor.lerpColors(DAY_GROUND, NIGHT_GROUND, n)
+    }
+    if (sun.current) {
+      sun.current.intensity = THREE.MathUtils.lerp(1.9, 0.3, n)
+      sun.current.color.lerpColors(SUN, MOONLIGHT, n)
+    }
+  })
+  return (
+    <>
+      <hemisphereLight ref={hemi} args={['#ffffff', '#c9cbf6', 1.7]} />
+      <directionalLight
+        ref={sun}
+        position={[6, 10, 6]}
+        intensity={1.9}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-6}
+        shadow-camera-right={6}
+        shadow-camera-top={6}
+        shadow-camera-bottom={-6}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.02}
+      />
+    </>
+  )
+}
+
+type Aim = { look: Vec3; from: Vec3 }
+
+function FocusLight({ aim }: { aim: Aim | null }) {
+  const light = useRef<THREE.SpotLight>(null)
+  const goal = useMemo(() => new THREE.Vector3(), [])
+  const spot = useMemo(() => new THREE.Vector3(), [])
+  useFrame((_, dt) => {
+    const l = light.current
+    if (!l) return
+    if (aim) {
+      goal.set(...aim.look)
+      spot.set(aim.from[0] - aim.look[0], 0, aim.from[2] - aim.look[2]).normalize().multiplyScalar(1.1).add(goal)
+      spot.y = aim.look[1] + 2.2
+      const k = l.intensity < 0.05 ? 1 : 1 - Math.exp(-5 * dt)
+      l.position.lerp(spot, k)
+      l.target.position.lerp(goal, k)
+      l.target.updateMatrixWorld()
+    }
+    l.intensity = THREE.MathUtils.damp(l.intensity, aim ? mood.night * 14 : 0, 4, dt)
+  })
+  return <spotLight ref={light} angle={0.5} penumbra={0.75} distance={7} color="#ffe6c2" intensity={0} />
+}
+
 function Intro({ children }: { children: ReactNode }) {
   const ref = useRef<THREE.Group>(null)
   const intro = useRef(0)
@@ -1141,7 +1236,9 @@ export default function Room({
   onOpenResume,
   resumeOpen,
   onOpenDoor,
+  night,
 }: {
+  night: boolean
   activeId: string | undefined
   focusJob: Job | null
   onOpenJob: (job: Job) => void
@@ -1155,6 +1252,12 @@ export default function Room({
   const focusIndex = focusJob ? experience.indexOf(focusJob) : -1
   const focus = focusIndex >= 0 ? logoPosition(focusIndex) : null
   const focused = focus !== null || (activeId !== undefined && !['home', 'room', 'basement'].includes(activeId))
+  const stop = [...stops, ...basementStops].find((s) => s.id === activeId)
+  const aim: Aim | null = focus
+    ? { look: focus, from: [2.5, 3.4, 1.3] }
+    : focused && stop
+      ? { look: stop.camera.look, from: stop.camera.pos }
+      : null
   const motion = useRef<Motion>({ progress: 0, x: 0, y: 0 })
   useEffect(() => {
     const state = motion.current
@@ -1182,19 +1285,8 @@ export default function Room({
       dpr={[1, 2]}
       camera={{ position: [11, 9, 11], fov: 30, near: 0.1, far: 100 }}
     >
-      <hemisphereLight args={['#ffffff', '#c9cbf6', 1.7]} />
-      <directionalLight
-        position={[6, 10, 6]}
-        intensity={1.9}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-6}
-        shadow-camera-right={6}
-        shadow-camera-top={6}
-        shadow-camera-bottom={-6}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.02}
-      />
+      <Lighting night={night} />
+      <FocusLight aim={aim} />
       <CameraRig
         motion={motion}
         focus={place === 'room' ? focus : null}

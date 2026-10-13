@@ -40,7 +40,9 @@ export function Tour({
   focusJob,
   resumeOpen,
   footer,
+  night,
 }: {
+  night: boolean
   actions: SectionActions
   focusJob: Job | null
   resumeOpen: boolean
@@ -232,6 +234,7 @@ export function Tour({
       <div className="tour__stage" aria-hidden="true">
         <Suspense fallback={null}>
           <Room
+            night={night}
             activeId={list[active]?.id}
             focusJob={focusJob}
             onOpenJob={actions.openJob}

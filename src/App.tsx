@@ -6,6 +6,7 @@ import { jumpToSection } from './jump'
 import { ResumeModal } from './ResumeModal'
 import { useReveal, useSmoothParallax } from './parallax'
 import { sections } from './sectionList'
+import { useTheme } from './theme'
 import { HeroIntro, Marquee, SectionTitle } from './sections'
 import { Tour } from './Tour'
 import { use3D } from './use3D'
@@ -21,6 +22,7 @@ const navLinks = [
 
 export default function App() {
   const has3D = use3D()
+  const [theme, toggleTheme] = useTheme()
   useSmoothParallax(has3D)
   useReveal(has3D)
   const year = new Date().getFullYear()
@@ -65,31 +67,59 @@ export default function App() {
           <a href="#top" className="nav__brand">
             PK
           </a>
-          <ul className="nav__links">
-            {navLinks.map((s) => (
-              <li key={s.id}>
-                <a
-                  href={`#${s.id}`}
-                  onClick={
-                    has3D
-                      ? (event) => {
-                          event.preventDefault()
-                          jumpToSection(s.id)
-                        }
-                      : undefined
-                  }
-                >
-                  {s.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <div className="nav__end">
+            <ul className="nav__links">
+              {navLinks.map((s) => (
+                <li key={s.id}>
+                  <a
+                    href={`#${s.id}`}
+                    onClick={
+                      has3D
+                        ? (event) => {
+                            event.preventDefault()
+                            jumpToSection(s.id)
+                          }
+                        : undefined
+                    }
+                  >
+                    {s.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {has3D && (
+              <button
+                type="button"
+                className="theme-toggle"
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              >
+                {theme === 'dark' ? (
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4.2" fill="currentColor" />
+                    <path
+                      d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z" fill="currentColor" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 
       <main id="top">
         {has3D ? (
-          <Tour actions={actions} focusJob={drawerOpen ? activeJob : null} resumeOpen={resumeOpen} footer={footer} />
+          <Tour night={theme === 'dark'} actions={actions} focusJob={drawerOpen ? activeJob : null} resumeOpen={resumeOpen} footer={footer} />
         ) : (
           <>
             <section className="hero">

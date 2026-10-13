@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useAvatar, type AvatarKind } from './Avatar'
 import { Mat } from './Mat'
+import { mood } from './mood'
 import { C } from './palette'
 import type { Vec3 } from './stops'
 import { FONT, roundRect, useCanvasTexture } from './textures'
@@ -338,6 +339,7 @@ function Gamer({
   phase,
   lean,
   grip,
+  legs,
 }: {
   kind: AvatarKind
   position: Vec3
@@ -345,6 +347,7 @@ function Gamer({
   phase: number
   lean: number
   grip?: Vec3
+  legs?: Vec3
 }) {
   const { root, scene, actions } = useAvatar(kind)
   const pad = useRef<THREE.Group>(null)
@@ -360,6 +363,12 @@ function Gamer({
       armR: bone('R_Forearm'),
       handL: bone('L_Hand'),
       handR: bone('R_Hand'),
+      thighL: bone('L_Thigh'),
+      thighR: bone('R_Thigh'),
+      calfL: bone('L_Calf'),
+      calfR: bone('R_Calf'),
+      footL: bone('L_Foot'),
+      footR: bone('R_Foot'),
       thumbL: bone('L_Finger01'),
       thumbR: bone('R_Finger01'),
       fingers: ['L', 'R'].flatMap((side) =>
@@ -437,7 +446,14 @@ function Gamer({
       const lift = steer * 0.025 + bob * 0.008
       reach(rig.handL, [rig.armL, rig.upperL], [x, y + lift, z])
       reach(rig.handR, [rig.armR, rig.upperR], [-x, y - lift, z])
+      rig.handL.rotateX(-0.9)
+      rig.handR.rotateX(0.9)
       rig.fingers.forEach((finger) => finger?.rotateZ(0.7))
+    }
+    if (legs && rig.footL && rig.footR) {
+      const [x, y, z] = legs
+      reach(rig.footL, [rig.calfL, rig.thighL], [x, y + Math.max(0, Math.sin(t * 1.3)) * 0.03, z])
+      reach(rig.footR, [rig.calfR, rig.thighR], [-x, y + Math.max(0, Math.sin(t * 1.3 + 2.2)) * 0.03, z])
     }
     rig.thumbL?.rotateZ(Math.max(0, Math.sin(t * 9.0)) * 0.35)
     rig.thumbR?.rotateZ(Math.max(0, Math.sin(t * 7.3 + 2)) * 0.35)
@@ -454,8 +470,8 @@ function Gamer({
     <group ref={root} position={position} rotation={[0, Math.PI, 0]}>
       <primitive object={scene} scale={scale} />
       <group ref={pad}>
-        <group position={grip ? [0, -0.02, 0.05] : [0, 0.01, 0.07]} rotation={[0, Math.PI, 0]} scale={kind === 'kid' ? 0.85 : 1}>
-          <group rotation={[-0.5, 0, 0]}>
+        <group position={grip ? [0, -0.02, 0.04] : [0, 0.01, 0.07]} rotation={[0, Math.PI, 0]} scale={kind === 'kid' ? 0.85 : 1}>
+          <group rotation={[grip ? 0 : -0.5, 0, 0]}>
             <Controller />
           </group>
         </group>
@@ -485,7 +501,7 @@ function Sofa() {
       ))}
       <Suspense fallback={null}>
         <Gamer kind="me" position={[-0.42, 0, 0.04]} scale={0.011} phase={0} lean={0.25} />
-        <Gamer kind="kid" position={[0.42, 0.17, -0.22]} scale={0.0088} phase={2.4} lean={0.4} grip={[0.075, 0.62, 0.1]} />
+        <Gamer kind="kid" position={[0.42, 0.17, -0.22]} scale={0.0078} phase={2.4} lean={0.4} grip={[0.07, 0.58, 0.11]} legs={[0.09, 0.34, 0.5]} />
       </Suspense>
     </group>
   )
@@ -798,6 +814,10 @@ function AiTable() {
 }
 
 export function Basement() {
+  const bulb = useRef<THREE.PointLight>(null)
+  useFrame(() => {
+    if (bulb.current) bulb.current.intensity = 1.6 + mood.night * 2.6
+  })
   return (
     <group>
       <Shell />
@@ -808,7 +828,7 @@ export function Basement() {
       <ToyCorner />
       <Scooter />
       <AiTable />
-      <pointLight position={[0.3, 3.2, 0.4]} intensity={1.6} distance={7} color={C.warm} />
+      <pointLight ref={bulb} position={[0.3, 3.2, 0.4]} intensity={1.6} distance={7} color={C.warm} />
     </group>
   )
 }
